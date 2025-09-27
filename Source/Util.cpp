@@ -7,7 +7,7 @@
 using namespace YAZF;
 unsigned long int Util::SizeOfString(const std::string& Content)
 {
-    return sizeof(Content) + Content.capacity() * sizeof(char);
+    return Content.size() * sizeof(char);
 }
 std::string Util::FormContentKey(const std::string& Key, const std::string& content)
 {

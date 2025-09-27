@@ -32,7 +32,7 @@ Yazf Yazf::NewWithRandomEncryptionKey()
 }
 Yazf Yazf::NewWithPredefinedKey(const std::string& _64byteskey, const std::string _32bitKey)
 {
-    std::cout << "CreatingKey 64bytes: " <<Util::SizeOfString(_64byteskey) << std::endl;
+    std::cout << "CreatingKey 64bytes: " <<_64byteskey << std::endl;
     std::cout << "CreatingKey 4bytes: " <<_32bitKey << std::endl;
     std::string _64bytesKey = _64byteskey;
     std::string _32bitkey = _32bitKey;
@@ -62,6 +62,7 @@ void Yazf::Write(std::filesystem::path Path)
     // preparing files
     File::GlobalFiles.insert(File::GlobalFiles.end(), FileList.begin(), FileList.end());
     std::string iv(_64bytesKey.begin(), _64bytesKey.begin()+16);
+    std::cout << "base iv: " << iv <<std::endl;
     std::string EncryptedPathsTable = "";
     DecryptionAndEncryption::Encrypt(_32bitKey, iv, Util::BuildPathsTable(), EncryptedPathsTable);
     DecryptionAndEncryption::Encrypt(_64bytesKey, iv, EncryptedPathsTable, EncryptedPathsTable);
@@ -136,7 +137,7 @@ Yazf Yazf::Parse(std::filesystem::path Path)
     input.seekg(0,std::ios::beg);
     char EncryptionKey512bits[ENCRYPTIONKEYSIZE/8 + 1] = {0};
     input.read(EncryptionKey512bits,ENCRYPTIONKEYSIZE/8);
-    std::cout << "Encryption Key: " << Util::SizeOfString(EncryptionKey512bits) << std::endl;
+    std::cout << "Encryption Key: " << EncryptionKey512bits << std::endl;
     std::string iv(EncryptionKey512bits);
     iv.resize(16);
     std::cout << "iv: " << iv << std::endl;
