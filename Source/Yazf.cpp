@@ -32,8 +32,6 @@ Yazf Yazf::NewWithRandomEncryptionKey()
 }
 Yazf Yazf::NewWithPredefinedKey(const std::string& _64byteskey, const std::string _32bitKey)
 {
-    std::cout << "CreatingKey 64bytes: " <<_64byteskey << std::endl;
-    std::cout << "CreatingKey 4bytes: " <<_32bitKey << std::endl;
     std::string _64bytesKey = _64byteskey;
     std::string _32bitkey = _32bitKey;
     if (_64bytesKey.size() < ENCRYPTIONKEYSIZE/8) {
@@ -62,7 +60,6 @@ void Yazf::Write(std::filesystem::path Path)
     // preparing files
     File::GlobalFiles.insert(File::GlobalFiles.end(), FileList.begin(), FileList.end());
     std::string iv(_64bytesKey.begin(), _64bytesKey.begin()+16);
-    std::cout << "base iv: " << iv <<std::endl;
     std::string EncryptedPathsTable = "";
     DecryptionAndEncryption::Encrypt(_32bitKey, iv, Util::BuildPathsTable(), EncryptedPathsTable);
     DecryptionAndEncryption::Encrypt(_64bytesKey, iv, EncryptedPathsTable, EncryptedPathsTable);
@@ -137,15 +134,16 @@ Yazf Yazf::Parse(std::filesystem::path Path)
     input.seekg(0,std::ios::beg);
     char EncryptionKey512bits[ENCRYPTIONKEYSIZE/8 + 1] = {0};
     input.read(EncryptionKey512bits,ENCRYPTIONKEYSIZE/8);
-    std::cout << "Encryption Key: " << EncryptionKey512bits << std::endl;
     std::string iv(EncryptionKey512bits);
     iv.resize(16);
-    std::cout << "iv: " << iv << std::endl;
     char EncryptedHeader[HEADERSIZE/8 + 1] = {0};
     input.seekg(ENCRYPTIONKEYSIZE/8,std::ios::beg);
     input.read(EncryptedHeader,HEADERSIZE/8);
-    std::string EncryptedHeaderStr(EncryptedHeader);
-    DecryptionAndEncryption::Decrypt(EncryptionKey512bits,iv,EncryptedHeader,EncryptedHeaderStr);
-    std::cout << "Decrypted Header: "<< EncryptedHeaderStr << std::endl;
+    std::string EncryptedHeaderStr(EncryptedHeader, HEADERSIZE/8);
+    DecryptionAndEncryption::Decrypt(EncryptionKey512bits,iv,EncryptedHeaderStr,EncryptedHeaderStr);
+    std::cout << "Decryption Key 512 bits type: " << EncryptionKey512bits <<std::endl;
+    std::cout << "Decryption Key iv type: " << iv <<std::endl;
+    std::cout << "Decrypted Header:\n"<< EncryptedHeaderStr << std::endl;
+    input.close();
     return NewWithRandomEncryptionKey();
 }

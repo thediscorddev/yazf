@@ -236,6 +236,7 @@ std::string Util::BuildHeader(const std::string& _32bitEncryptionKey, const std:
 {
     std::string Content = "";
     Content += Meta_Tags::METADATA_BEGIN;
+    Content += "\n";
     Content += Util::FormContentKey("FileVersion",YAZF_VERSION) + "\n";
     Content += Util::FormContentKey("EncryptionKey",_32bitEncryptionKey) + "\n";
     Content += Util::FormContentKey("FilePathsTableBegin",ENCRYPTIONKEYSIZE + HEADERSIZE+1) + "\n";
