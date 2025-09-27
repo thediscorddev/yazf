@@ -1,5 +1,6 @@
 #include "../Header/File.hpp"
 #include "../Header/Meta_Tags.hpp"
+#include "../Header/Util.hpp"
 using namespace YAZF;
 std::vector<File> File::GlobalFiles;
 File::File(const std::string& path, const std::string& name, const std::string& content)
@@ -21,13 +22,13 @@ std::string File::GetFileInformation(unsigned long int contentoffset1, unsigned 
     std::string content;
     content += Meta_Tags::FILEINFORMATION_BEGIN;
     content+="\n";
-    content+="\"Name\": " + Name;
+    content+=Util::FormContentKey("Name", Name);
     content+="\n";
-    content+="\"Path\": " + Path;
+    content+=Util::FormContentKey("Path", Path);
     content+="\n";
-    content+="\"ContentOffset1\": " + contentoffset1;
+    content+=Util::FormContentKey("ContentOffset1", contentoffset1);
     content+="\n";
-    content+="\"ContentOffset2\": " + contentoffset2;
+    content+=Util::FormContentKey("ContentOffset2", contentoffset2);
     content+="\n";
     content+= Meta_Tags::FILEINFORMATION_END;
     return content;
