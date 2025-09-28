@@ -12,7 +12,7 @@ namespace YAZF {
             YAZF_API std::string Content;
             YAZF_API File(const std::string& path, const std::string& name, const std::string& content);
             YAZF_API std::string GetFileContent() const;
-            YAZF_API std::string GetFileInformation(unsigned long int contentoffset1, unsigned long int contentoffset2) const;
+            YAZF_API std::string GetFileInformation(unsigned long long int contentoffset1, unsigned long long int contentoffset2) const;
     };
 };
 #endif

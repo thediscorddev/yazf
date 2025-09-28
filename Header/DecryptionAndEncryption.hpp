@@ -1,9 +1,11 @@
 #ifndef DECRYPTIONANDENCRYPTION_HPP
 #define DECRYPTIONANDENCRYPTION_HPP
 #include "PlatformHeader.hpp"
+#include <openssl/evp.h>
 #include <string>
 namespace YAZF {
     class DecryptionAndEncryption {
+            static void logError(EVP_CIPHER_CTX *ctx, const std::string& Key, const std::string& iv);
         public:
             static YAZF_API bool Encrypt(const std::string& Key, const std::string& iv,const std::string& content, std::string& output);
             static YAZF_API bool Decrypt(const std::string& Key, const std::string& iv, const std::string& content, std::string& output);

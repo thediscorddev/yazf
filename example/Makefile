@@ -1,6 +1,6 @@
 CXX := g++
 CXXFLAGS := -Wall -fPIC -Iinclude
-LDFLAGS := -lssl -lcrypto -L./../lib -lyazf
+LDFLAGS := -lssl -lcrypto -L./../lib -lyazf  -g -O0 
 
 SRC_DIR := Source
 OBJ_DIR := obj

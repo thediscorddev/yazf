@@ -5,12 +5,13 @@
 #include <stdexcept>
 #include <vector>
 using namespace YAZF;
-bool DecryptionAndEncryption::Encrypt(const std::string& Key, const std::string& iv, const std::string& content, std::string& output)
+bool DecryptionAndEncryption::Encrypt(const std::string &Key, const std::string &iv, const std::string &content, std::string &output)
 {
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (!ctx) return false;
+    if (!ctx)
+        return false;
 
-    if (EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), nullptr, reinterpret_cast<const unsigned char*>(Key.c_str()),reinterpret_cast<const unsigned char*>(iv.c_str())) != 1)
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, reinterpret_cast<const unsigned char *>(Key.c_str()), reinterpret_cast<const unsigned char *>(iv.c_str())) != 1)
         return false;
 
     std::vector<unsigned char> ciphertext(content.size() + AES_BLOCK_SIZE);
@@ -28,24 +29,26 @@ bool DecryptionAndEncryption::Encrypt(const std::string& Key, const std::string&
 
     EVP_CIPHER_CTX_free(ctx);
     ciphertext.resize(ciphertext_len);
-    output = std::string(reinterpret_cast<const char*>(ciphertext.data()), ciphertext.size());
+    output = std::string(reinterpret_cast<const char *>(ciphertext.data()), ciphertext.size());
     return true;
 }
-bool DecryptionAndEncryption::EncryptWithPadding(const std::string& Key, const std::string& iv, const std::string& content, const unsigned int& SizeIn16bytes, std::string& output)
+bool DecryptionAndEncryption::EncryptWithPadding(const std::string &Key, const std::string &iv, const std::string &content, const unsigned int &SizeIn16bytes, std::string &output)
 {
     std::string paddled = content;
-    if(SizeIn16bytes % 16 != 0)
+    if (SizeIn16bytes % 16 != 0)
     {
         return false;
     }
-    if (paddled.size() > SizeIn16bytes - 1) {
+    if (paddled.size() > SizeIn16bytes - 1)
+    {
         return false;
     }
 
     // Minimum length required
     size_t min_len = SizeIn16bytes - 16;
-    if (paddled.size() < min_len) {
+    if (paddled.size() < min_len)
+    {
         paddled.resize(min_len, '\0');
-    } 
+    }
     return Encrypt(Key, iv, paddled, output);
 }

@@ -2,4 +2,4 @@ make
 cp lib/libyazf.so ./example/
 cd example
 make
-LD_LIBRARY_PATH=. ./bin/example
+LD_LIBRARY_PATH=./../lib/ ./bin/example

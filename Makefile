@@ -1,6 +1,6 @@
 CXX := g++
 CXXFLAGS := -Wall -fPIC -Iinclude
-LDFLAGS := -shared
+LDFLAGS := -shared  -g -O0 
 
 SRC_DIR := Source
 OBJ_DIR := obj
