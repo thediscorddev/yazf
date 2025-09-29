@@ -88,12 +88,14 @@ void Yazf::Write(std::filesystem::path Path)
     for (unsigned long long int i = 0; i < File::GlobalFiles.size(); i++)
     {
         const auto &file = File::GlobalFiles[i];
-        std::string UniqueKey = RandomKey(16);
+        std::string UniqueKey = RandomKey(UNIQUEKEYSIZE);
         std::string UsedUniqueKey = UniqueKeyTo32BytesKey(UniqueKey);
         std::string EncryptedUniqueKey = UniqueKey;
         // Encrypt the encryption key
         DecryptionAndEncryption::Encrypt(Extended4BytesKey, iv, EncryptedUniqueKey, EncryptedUniqueKey);
         DecryptionAndEncryption::Encrypt(_32bytesKey, iv, EncryptedUniqueKey, EncryptedUniqueKey);
+        std::cout << "Encrypted Unique key:\n"; 
+        Util::printhex(EncryptedUniqueKey);
         // we now have the first std::pair<string, string>
         // now we will encrypt the content with the nonencrypted unique key
         std::string Content = file.GetFileContent();
@@ -115,9 +117,10 @@ void Yazf::Write(std::filesystem::path Path)
         const auto &Second = el.second;
         const auto &EncryptedUniqueKey = First.first.first;
         const auto &EncryptedContent = Second.first;
+        std::cout << "File written at: " << (ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex << std::endl;
         output.seekp((ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex);
         output.write(EncryptedUniqueKey.data(), EncryptedUniqueKey.size());
-        extraIndex += 16;
+        extraIndex += ENCRYPTEDUNIQUEKEYSIZE;
         output.seekp((ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex);
         output.write(EncryptedContent.data(), EncryptedContent.size());
         extraIndex += Util::SizeOfString(EncryptedContent);
@@ -145,7 +148,7 @@ void Yazf::Write(std::filesystem::path Path)
 Yazf Yazf::Parse(std::filesystem::path Path)
 {
     // Preparing the vector Header
-    KeyAndContentPairContainer HeaderDataList;
+    KeyAndContentPairContainer HeaderDataList, PathList;
     std::ifstream input(Path, std::ios::binary);
     if (!input)
     {
@@ -169,41 +172,13 @@ Yazf Yazf::Parse(std::filesystem::path Path)
         throw std::runtime_error("Corrupted Meta Data");
     if (std::string(SplitedMetaData[0]) != Meta_Tags::METADATA_BEGIN)
         throw std::runtime_error("Invaild Meta Data");
+    // Trip the extra paddling 0
+    Util::RemoveTrailingFromString(SplitedMetaData[SplitedMetaData.size()-1]);
+    if (std::string(SplitedMetaData[SplitedMetaData.size()-1]) != Meta_Tags::METADATA_END)
+        throw std::runtime_error("Invaild Meta Data");
     for (int i = 1; i < SplitedMetaData.size() - 1; i++)
     {
-        std::vector<std::string> SplitedKey;
-        Util::SplitString(SplitedMetaData[i], ':', SplitedKey);
-        if (SplitedKey.size() < 2)
-            throw std::runtime_error("Invaild key: " + SplitedMetaData[i]);
-        std::string AccessKey(SplitedKey[0]);
-        std::string Content = "";
-        for (int i = 1; i < SplitedKey.size(); i++)
-        {
-            Content += SplitedKey[i];
-        }
-        // we will split the " out
-        SplitedKey.clear();
-        Util::SplitString(AccessKey, '"', SplitedKey);
-        if (SplitedKey.size() < 3)
-            throw std::runtime_error("Invaild Access Key");
-        AccessKey = "";
-        for (int i = 1; i < SplitedKey.size(); i++)
-        {
-            AccessKey += SplitedKey[i];
-        }
-        SplitedKey.clear();
-        Util::SplitString(Content, '"', SplitedKey);
-        Content = "";
-        if (SplitedKey.size() == 1)
-            Content = SplitedKey[0]; // a number
-        if (SplitedKey.size() == 0 || SplitedKey.size() == 2)
-            throw std::runtime_error("Invaild Content");
-        for (int i = 1; i < SplitedKey.size(); i++)
-        {
-            Content += SplitedKey[i];
-        }
-        //
-        HeaderDataList.append(AccessKey, Content);
+        Util::ParseContentKeyAndData(HeaderDataList,SplitedMetaData[i]);
     }
     for (const auto &el : HeaderDataList.GetList())
     {
@@ -223,20 +198,85 @@ Yazf Yazf::Parse(std::filesystem::path Path)
     std::cout << DecryptionAndEncryption::Decrypt(_32bytesKey, iv, DecryptedPathTable, DecryptedPathTable) << std::endl;
     std::cout << DecryptionAndEncryption::Decrypt(Extended4BytesKey, iv, DecryptedPathTable, DecryptedPathTable) << std::endl;
     // Parse Paths Table
+    std::vector<std::string> SplitedPathTable;
+    Util::SplitString(DecryptedPathTable,'\n',SplitedPathTable);
+    if(SplitedPathTable.size() < 2) throw std::runtime_error("Corrupted paths table");
+    if (std::string(SplitedPathTable[0]) != Meta_Tags::PATHTABLE_BEGIN)
+        throw std::runtime_error("Invaild paths table");
+    if (std::string(SplitedPathTable[SplitedPathTable.size()-1]) != Meta_Tags::PATHTABLE_END)
+        throw std::runtime_error("Invaild paths table");
+    for(unsigned long long int i = 1; i < SplitedPathTable.size()-1; i++)
+    {
+        Util::ParseContentKeyAndData(PathList,SplitedPathTable[i]);
+    }
     // Parse files Table
     unsigned long long int FileTableBegin = std::stoull(HeaderDataList.GetOrThrow("FilesTableBegin", "Invaild meta data").GetSecond());
     unsigned long long int FileTableEnd = std::stoull(HeaderDataList.GetOrThrow("FilesTableEnd", "Invaild meta data").GetSecond());
     unsigned long long int FileTableSize = FileTableEnd - FileTableBegin + 1;
-    std::cout << "FileTableSize: " << FileTableSize << std::endl;
     std::vector<char> EncryptedFilesTable(FileTableSize + 1, 0);
     input.seekg(FileTableBegin, std::ios::beg);
     input.read(EncryptedFilesTable.data(), FileTableSize);
     std::string DecryptedFileTable(EncryptedFilesTable.data(), FileTableSize);
-    std::cout << "hex Of EncryptedFile Table:";
-    Util::printhex(DecryptedFileTable);
-    std::cout << DecryptionAndEncryption::Decrypt(_32bytesKey, iv, DecryptedFileTable, DecryptedFileTable) << std::endl;
-    std::cout << DecryptionAndEncryption::Decrypt(Extended4BytesKey, iv, DecryptedFileTable, DecryptedFileTable) << std::endl;
-    std::cout << std::endl << DecryptedFileTable<<std::endl;
+    DecryptionAndEncryption::Decrypt(_32bytesKey, iv, DecryptedFileTable, DecryptedFileTable);
+    DecryptionAndEncryption::Decrypt(Extended4BytesKey, iv, DecryptedFileTable, DecryptedFileTable);
+    // After decrypted file table, we will parse it
+    std::vector<std::string> SplitedFileTable;
+    Util::SplitString(DecryptedFileTable,'\n',SplitedFileTable);
+    if(SplitedFileTable.size() < 2) throw std::runtime_error("Corrupted Files table");
+    if (std::string(SplitedFileTable[0]) != Meta_Tags::FILETABLE_BEGIN)
+        throw std::runtime_error("Invaild Files Table Data");
+    // Trip the extra paddling 0
+    Util::RemoveTrailingFromString(SplitedFileTable[SplitedFileTable.size()-1]);
+    if (std::string(SplitedFileTable[SplitedFileTable.size()-1]) != Meta_Tags::FILETABLE_END)
+        throw std::runtime_error("Invaild Files Table Data");
+    File CurrentFile; 
+    KeyAndContentPairContainer CurrentFileData;
+    for(unsigned long long int i = 1; i < SplitedFileTable.size()-1; i++)
+    {
+        const std::string& Line = SplitedFileTable[i];
+        if(Line == Meta_Tags::FILEINFORMATION_BEGIN) 
+        {
+            CurrentFile = File();
+            CurrentFileData.GetList().clear();
+            continue;
+        }
+        if(Line == Meta_Tags::FILEINFORMATION_END)
+        {
+            // parsing logic
+            std::string FileName = CurrentFileData.GetOrThrow("Name", "Invaild File Information").GetSecond();
+            std::string FilePathId = CurrentFileData.GetOrThrow("Name", "Invaild File Information").GetSecond();
+            //std::string FilePathRelative = PathList.GetOrThrow(FilePathId, "Invaild File Path").GetSecond();
+            unsigned long long int ContentOffset1 = std::stoull(CurrentFileData.GetOrThrow("ContentOffset1", "Invaild File Information").GetSecond());
+            unsigned long long int ContentOffset2 = std::stoull(CurrentFileData.GetOrThrow("ContentOffset2", "Invaild File Information").GetSecond());
+            // read file
+            char EncryptedUniqueKey[ENCRYPTEDUNIQUEKEYSIZE+1] = {0};
+            input.seekg(ContentOffset1, std::ios::beg);
+            input.read(EncryptedUniqueKey, ENCRYPTEDUNIQUEKEYSIZE);
+            std::string DecryptedUniqueKey(EncryptedUniqueKey,ENCRYPTEDUNIQUEKEYSIZE);
+            std::cout << "UniqueKey in file:\n";
+            Util::printhex(DecryptedUniqueKey);
+            DecryptionAndEncryption::Decrypt(_32bytesKey, iv, DecryptedUniqueKey, DecryptedUniqueKey);
+            DecryptionAndEncryption::Decrypt(Extended4BytesKey, iv, DecryptedUniqueKey, DecryptedUniqueKey);
+            unsigned long long int ContentSize = ContentOffset2-ContentOffset1-ENCRYPTEDUNIQUEKEYSIZE;
+            input.seekg(ContentOffset1+ENCRYPTEDUNIQUEKEYSIZE, std::ios::beg);
+            std::vector<char> EncryptedContent(ContentSize+1,0);
+            input.read(EncryptedContent.data(), ContentSize);
+            std::string DecryptedContent(EncryptedContent.data(), ContentSize);
+            DecryptionAndEncryption::Decrypt(_32bytesKey, iv, DecryptedContent, DecryptedContent);
+            DecryptionAndEncryption::Decrypt(Extended4BytesKey, iv, DecryptedContent, DecryptedContent);
+            DecryptionAndEncryption::Decrypt(UniqueKeyTo32BytesKey(DecryptedUniqueKey), iv, DecryptedContent, DecryptedContent);
+            std::cout << "Decrypted data: " << DecryptedContent << std::endl;
+            
+        for (const auto &el : CurrentFileData.GetList())
+        {
+            std::cout << el.GetFirst() << ": " << el.GetSecond() << " (" << el.GetContentType() << ")" << std::endl;
+        }
+            continue;
+        }
+        // reading logic
+        Util::ParseContentKeyAndData(CurrentFileData,SplitedFileTable[i]);
+    }
+    std::cout << DecryptedFileTable << std::endl;
     input.close();
     return NewWithRandomEncryptionKey();
 }

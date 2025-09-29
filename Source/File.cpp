@@ -17,14 +17,16 @@ std::string File::GetFileContent() const
     content += Meta_Tags::FILECONTENT_END;
     return content;
 }
-std::string File::GetFileInformation(unsigned long long int contentoffset1, unsigned long long int contentoffset2) const
+std::string File::GetFileInformation(unsigned long long int contentoffset1, unsigned long long int contentoffset2, const std::map<std::string, std::string>& PathList) const
 {
+    std::string path = Path;
+    if(PathList.find(Path) != PathList.end()) path = PathList.at(Path);
     std::string content;
     content += Meta_Tags::FILEINFORMATION_BEGIN;
     content += "\n";
     content += Util::FormContentKey("Name", Name);
     content += "\n";
-    content += Util::FormContentKey("Path", Path);
+    content += Util::FormContentKey("Path", path);
     content += "\n";
     content += Util::FormContentKey("ContentOffset1", contentoffset1);
     content += "\n";
@@ -32,4 +34,8 @@ std::string File::GetFileInformation(unsigned long long int contentoffset1, unsi
     content += "\n";
     content += Meta_Tags::FILEINFORMATION_END;
     return content;
+}
+File::File()
+{
+    
 }

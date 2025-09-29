@@ -5,10 +5,13 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "KeyAndContentPairContainer.hpp"
 namespace YAZF {
     class Util {
+            static YAZF_API std::map<std::string, std::string> GetAllPath();
             static YAZF_API void RegexOrThrow(const std::string& content);
         public:
+            static YAZF_API void ParseContentKeyAndData(KeyAndContentPairContainer& container, const std::string& TargetKey);
             static YAZF_API void SplitString(const std::string& s, char delimiter, std::vector<std::string>& tokens);
             static YAZF_API unsigned long long int SizeOfString(const std::string& Content);
             static YAZF_API std::string FormContentKey(const std::string& Key, const std::string& content);
@@ -32,6 +35,7 @@ namespace YAZF {
             static YAZF_API bool isFloat(const std::string& s);
             static YAZF_API bool isDouble(const std::string& s);
             static YAZF_API void printhex(const std::string& s);
+            static YAZF_API void RemoveTrailingFromString(std::string& s);
     };
 }
 #endif

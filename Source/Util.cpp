@@ -193,7 +193,7 @@ std::string Util::FormContentKey(const std::string &Key, const unsigned long lon
     Content += std::to_string(content);
     return Content;
 };
-std::string Util::BuildPathsTable()
+std::map<std::string, std::string> Util::GetAllPath()
 {
     std::map<std::string, std::string> Map;
     int i = 0;
@@ -204,6 +204,11 @@ std::string Util::BuildPathsTable()
             Map[el.Path] = std::to_string(i++);
         }
     }
+    return Map;
+}
+std::string Util::BuildPathsTable()
+{
+    std::map<std::string, std::string> Map = GetAllPath();
     std::string content;
     content += Meta_Tags::PATHTABLE_BEGIN;
     for (auto &el : Map)
@@ -217,7 +222,7 @@ std::string Util::BuildPathsTable()
 }
 std::string Util::BuildFilesTable(const std::string &EncryptedPathTable, const std::map<std::string, std::pair<std::string, unsigned long long int>> &EncryptedFileContent)
 {
-
+    std::map<std::string, std::string> PathList = GetAllPath();
     const unsigned int index = ENCRYPTIONKEYSIZE + HEADERSIZE + SizeOfString(EncryptedPathTable);
     std::vector<std::pair<std::string, unsigned int>> SortedEncryptedContent;
     for (const auto &el : EncryptedFileContent)
@@ -246,10 +251,10 @@ std::string Util::BuildFilesTable(const std::string &EncryptedPathTable, const s
             if (i >= SortedEncryptedContent.size())
                 continue;
             const std::string &EncryptedContent = SortedEncryptedContent[i].first;
-            FileIndex1 += SizeOfString(EncryptedContent) + 16;
+            FileIndex1 += SizeOfString(EncryptedContent) + ENCRYPTEDUNIQUEKEYSIZE;
         }
-        FileIndex2 += FileIndex1 + SizeOfString(BaseEncryptedContent) + 16;
-        content += el.GetFileInformation(index + FileIndex1, index + FileIndex2);
+        FileIndex2 += FileIndex1 + SizeOfString(BaseEncryptedContent) + ENCRYPTEDUNIQUEKEYSIZE;
+        content += el.GetFileInformation(index + FileIndex1, index + FileIndex2, PathList);
     }
     content += "\n";
     content += Meta_Tags::FILETABLE_END;
@@ -270,7 +275,7 @@ std::string Util::BuildHeader(const std::string &_32bitEncryptionKey, const std:
     unsigned long long int ContentSize = 0;
     for (auto &el : EncryptedFileContent)
     {
-        ContentSize += 16 + SizeOfString(el.second.first);
+        ContentSize += ENCRYPTEDUNIQUEKEYSIZE + SizeOfString(el.second.first);
     }
     Content += Util::FormContentKey("FilesTableBegin", ENCRYPTIONKEYSIZE + HEADERSIZE + SizeOfString(EncryptedPathsTable) + ContentSize) + "\n";
     Content += Util::FormContentKey("FilesTableEnd", ENCRYPTIONKEYSIZE + HEADERSIZE + SizeOfString(EncryptedPathsTable) + ContentSize + SizeOfString(EncryptedFilesTable) - 1) + "\n";
@@ -341,4 +346,50 @@ bool Util::isDouble(const std::string &s)
     {
         return false;
     }
+}
+void Util::RemoveTrailingFromString(std::string &s)
+{
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+                         [](unsigned char c)
+                         { return c != '\0'; })
+                .base(),
+            s.end());
+}
+void Util::ParseContentKeyAndData(KeyAndContentPairContainer& container, const std::string& TargetKey)
+{
+        std::vector<std::string> SplitedKey;
+        Util::SplitString(TargetKey, ':', SplitedKey);
+        if (SplitedKey.size() < 2)
+            throw std::runtime_error("Invaild key: " + TargetKey);
+        std::string AccessKey(SplitedKey[0]);
+        std::string Content = "";
+        for (int i = 1; i < SplitedKey.size(); i++)
+        {
+            if(i > 1) Content += ":";
+            Content += SplitedKey[i];
+        }
+        // we will split the " out
+        SplitedKey.clear();
+        Util::SplitString(AccessKey, '"', SplitedKey);
+        if (SplitedKey.size() < 3)
+            throw std::runtime_error("Invaild Access Key");
+        AccessKey = "";
+        for (int i = 1; i < SplitedKey.size()-1; i++)
+        {
+            if(i > 1) AccessKey += '"';
+            AccessKey += SplitedKey[i];
+        }
+        SplitedKey.clear();
+        Util::SplitString(Content, '"', SplitedKey);
+        Content = "";
+        if (SplitedKey.size() == 1)
+            Content = SplitedKey[0]; // a number
+        if (SplitedKey.size() == 0 || SplitedKey.size() == 2)
+            throw std::runtime_error("Invaild Content");
+        for (int i = 1; i < SplitedKey.size()-1; i++)
+        {
+            if(i > 1) Content += "\"";
+            Content += SplitedKey[i];
+        }
+        container.append(AccessKey, Content);
 }
