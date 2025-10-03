@@ -117,22 +117,21 @@ void Yazf::Write(std::filesystem::path Path)
         const auto &Second = el.second;
         const auto &EncryptedUniqueKey = First.first.first;
         const auto &EncryptedContent = Second.first;
-        std::cout << "File written at: " << (ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex << std::endl;
+        std::cout << "File encryption key written at: " << (ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex << std::endl;
         output.seekp((ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex);
         output.write(EncryptedUniqueKey.data(), EncryptedUniqueKey.size());
         extraIndex += ENCRYPTEDUNIQUEKEYSIZE;
         output.seekp((ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex);
+        std::cout << "File Content key written at: " << (ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex << std::endl;
         output.write(EncryptedContent.data(), EncryptedContent.size());
         extraIndex += Util::SizeOfString(EncryptedContent);
+        std::cout << "File Content hex: ";
+        Util::printhex(EncryptedContent);
     }
     std::string EncryptedFileTable = Util::BuildFilesTable(EncryptedPathsTable, EncryptedFileContent);
     DecryptionAndEncryption::Encrypt(Extended4BytesKey, iv, EncryptedFileTable, EncryptedFileTable);
     DecryptionAndEncryption::Encrypt(_32bytesKey, iv, EncryptedFileTable, EncryptedFileTable);
-    std::cout << "File table size: " << EncryptedFileTable.size() << std::endl;
-    std::cout << "hex Of EncryptedFile Table write:";
-    Util::printhex(EncryptedFileTable);
     output.seekp((ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex);
-    std::cout << "File table really started at: " << (ENCRYPTIONKEYSIZE + HEADERSIZE) + Util::SizeOfString(EncryptedPathsTable) + extraIndex << std::endl;
     output.write(EncryptedFileTable.data(), EncryptedFileTable.size());
     // we have done writing files table
     // Finally, we will write our header
@@ -262,6 +261,8 @@ Yazf Yazf::Parse(std::filesystem::path Path)
             std::vector<char> EncryptedContent(ContentSize+1,0);
             input.read(EncryptedContent.data(), ContentSize);
             std::string DecryptedContent(EncryptedContent.data(), ContentSize);
+                    std::cout << "File Content hex in file: ";
+        Util::printhex(DecryptedContent);
             DecryptionAndEncryption::Decrypt(_32bytesKey, iv, DecryptedContent, DecryptedContent);
             DecryptionAndEncryption::Decrypt(Extended4BytesKey, iv, DecryptedContent, DecryptedContent);
             DecryptionAndEncryption::Decrypt(UniqueKeyTo32BytesKey(DecryptedUniqueKey), iv, DecryptedContent, DecryptedContent);
