@@ -11,6 +11,7 @@ namespace YAZF {
             Yazf(const std::string& _32byteskey, const std::string& _4byteskey);
             const std::string _32bytesKey, _4bytesKey;
             static std::string RandomKey(size_t SizeInBytes);
+            static std::string RandomUniqueKey(size_t SizeInBytes);
             static std::string Getiv(const std::string& _32byteskey);
             static std::string Form32BytesKey(const std::string& _32byteskey, const std::string& _4bytesKey);
             static std::string UniqueKeyTo32BytesKey(const std::string UniqueKey);

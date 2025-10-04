@@ -393,3 +393,11 @@ void Util::ParseContentKeyAndData(KeyAndContentPairContainer& container, const s
         }
         container.append(AccessKey, Content);
 }
+std::string Util::toHex(const std::string& input_string)
+{
+    std::stringstream ss;
+    for (char c : input_string) {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(static_cast<unsigned char>(c));
+    }
+    return ss.str();
+}

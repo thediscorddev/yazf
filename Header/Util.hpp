@@ -36,6 +36,7 @@ namespace YAZF {
             static YAZF_API bool isDouble(const std::string& s);
             static YAZF_API void printhex(const std::string& s);
             static YAZF_API void RemoveTrailingFromString(std::string& s);
+            static YAZF_API std::string toHex(const std::string& input_string);
     };
 }
 #endif

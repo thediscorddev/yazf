@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -Wall -fPIC -Iinclude
+CXXFLAGS := -Wall -fPIC -Iinclude -DYAZF_DEBUG=1
 LDFLAGS := -shared  -g -O0 
 
 SRC_DIR := Source
